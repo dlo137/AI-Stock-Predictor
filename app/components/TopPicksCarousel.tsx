@@ -1,7 +1,22 @@
 import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function TopPicksCarousel({ title, badgeText, data }) {
+interface PickData {
+  id: string;
+  company: string;
+  added: string;
+  removed: string;
+  return: number;
+  icon: any;
+}
+
+interface TopPicksCarouselProps {
+  title: string;
+  badgeText?: string;
+  data: PickData[];
+}
+
+export default function TopPicksCarousel({ title, badgeText, data }: TopPicksCarouselProps) {
   const cardWidth = 300;
   const cardSpacing = 16;
 
