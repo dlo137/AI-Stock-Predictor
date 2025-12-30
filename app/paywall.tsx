@@ -25,7 +25,7 @@ export default function PaywallScreen() {
   };
 
   const handleRestore = () => {
-    // Restore purchases functionality
+    // Restore purchases functionality.
     router.replace('/(tabs)/home');
   };
 
