@@ -1,3 +1,4 @@
 declare module '@env' {
-  export const STOCK_API_KEY: string;
+  export const ALPHA_VANTAGE_API_KEY: string;
+  export const OPENAI_API_KEY: string;
 }
