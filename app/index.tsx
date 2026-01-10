@@ -186,7 +186,7 @@ export default function OnboardingScreen() {
             source={require('../assets/app-icon.png')}
             style={styles.appIcon}
           />
-          <Text style={styles.appName}>AI Stock Predictor</Text>
+          <Text style={styles.appName}>Bullish Bearish Signals</Text>
         </View>
         {/* Grid of cards - first screen has tall first column */}
         {isFirstScreen ? (

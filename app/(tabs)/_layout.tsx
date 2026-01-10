@@ -40,24 +40,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="portfolio"
-        options={{
-          title: 'Portfolio',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="briefcase" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="alerts"
-        options={{
-          title: 'Alerts',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* Portfolio and Alerts tabs removed as requested */}
       <Tabs.Screen
         name="profile"
         options={{

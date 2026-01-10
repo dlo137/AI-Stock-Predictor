@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 interface PickData {
   id: string;
@@ -7,17 +8,21 @@ interface PickData {
   added: string;
   removed: string;
   return: number;
-  icon: any;
+  price: number;
+  icon: string;
+  confidence?: number;
+  signalType?: 'bullish' | 'bearish';
 }
 
 interface TopPicksCarouselProps {
   title: string;
   badgeText?: string;
   data: PickData[];
+  onCardPress?: (symbol: string) => void;
 }
 
-export default function TopPicksCarousel({ title, badgeText, data }: TopPicksCarouselProps) {
-  const cardWidth = 300;
+export default function TopPicksCarousel({ title, badgeText, data, onCardPress }: TopPicksCarouselProps) {
+  const cardWidth = 260;
   const cardSpacing = 16;
 
   return (
@@ -41,39 +46,72 @@ export default function TopPicksCarousel({ title, badgeText, data }: TopPicksCar
         contentContainerStyle={styles.scrollContent}
       >
         {data.map((pick, index) => (
-          <View
+          <TouchableOpacity
             key={pick.id}
             style={[
               styles.card,
               { width: cardWidth },
               index === 0 && { marginLeft: 0 },
             ]}
+            onPress={() => onCardPress?.(pick.id)}
+            activeOpacity={0.8}
           >
             {/* Card Content */}
             <View style={styles.cardContent}>
-              {/* Left side - Text content */}
-              <View style={styles.textContainer}>
-                <Text style={styles.companyName}>{pick.company}</Text>
-                <Text style={styles.dateText}>{pick.added}</Text>
-                <Text style={styles.dateText}>{pick.removed}</Text>
-                <View style={styles.returnContainer}>
-                  <Text
-                    style={[
-                      styles.returnText,
-                      pick.return >= 0 ? styles.positiveReturn : styles.negativeReturn,
-                    ]}
-                  >
-                    {pick.return >= 0 ? '+' : ''}
-                    {pick.return.toFixed(1)}%
-                  </Text>
-                  <Text style={styles.returnLabel}>Total Return</Text>
+              {/* Header with Symbol */}
+              <View style={styles.cardHeader}>
+                <View style={styles.headerLeft}>
+                  {pick.icon ? (
+                    <Image source={{ uri: pick.icon }} style={styles.stockIcon} />
+                  ) : (
+                    <View style={[styles.stockIcon, styles.iconPlaceholder]}>
+                      <Text style={styles.iconPlaceholderText}>{pick.id.substring(0, 2)}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.symbolText}>{pick.id}</Text>
                 </View>
+                {pick.signalType && (
+                  <View style={[
+                    styles.signalBadge,
+                    pick.signalType === 'bullish' ? styles.bullishBadge : styles.bearishBadge
+                  ]}>
+                    <Ionicons 
+                      name={pick.signalType === 'bullish' ? 'arrow-up' : 'arrow-down'} 
+                      size={16} 
+                      color={pick.signalType === 'bullish' ? '#34D399' : '#FF453A'} 
+                    />
+                  </View>
+                )}
               </View>
 
-              {/* Right side - Icon with glow */}
-              <View style={styles.iconContainer}>
-                <View style={styles.glowCircle} />
-                <Image source={pick.icon} style={styles.iconImage} />
+              {/* Confidence Bar */}
+              {pick.confidence !== undefined && (
+                <View style={styles.confidenceContainer}>
+                  <View style={styles.confidenceBarBg}>
+                    <View style={[styles.confidenceBarFill, { width: `${pick.confidence}%` }]} />
+                  </View>
+                  <View style={styles.confidenceLabels}>
+                    <Text style={styles.confidenceText}>
+                      {pick.confidence < 70 ? 'Low' : pick.confidence < 80 ? 'Medium' : 'High'} Signal
+                    </Text>
+                    <Text style={styles.confidencePercent}>{pick.confidence}%</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Bottom Row: Price on Right */}
+              <View style={styles.bottomRow}>
+                {/* Price in Bottom Right */}
+                <View style={styles.priceContainer}>
+                  <Text
+                    style={[
+                      styles.priceText,
+                      pick.return >= 0 ? styles.positivePrice : styles.negativePrice,
+                    ]}
+                  >
+                    ${pick.price.toFixed(2)}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -85,7 +123,7 @@ export default function TopPicksCarousel({ title, badgeText, data }: TopPicksCar
               style={styles.rightGradient}
               pointerEvents="none"
             />
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
@@ -135,9 +173,150 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stockIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  iconPlaceholder: {
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconPlaceholderText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  symbolText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  signalBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bullishBadge: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+  },
+  bearishBadge: {
+    backgroundColor: 'rgba(255, 69, 58, 0.15)',
+  },
+  confidenceContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  confidenceBarBg: {
+    height: 4,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  confidenceBarFill: {
+    height: '100%',
+    backgroundColor: '#34D399',
+    borderRadius: 2,
+  },
+  confidenceLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  confidenceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  confidencePercent: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34D399',
+  },
+  companySubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  returnBadge: {
+    fontSize: 14,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 'auto',
+  },
+  statsList: {
+    gap: 6,
+  },
+  statLine: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B0B0B0',
+    lineHeight: 14,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  priceText: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  positivePrice: {
+    color: '#34D399',
+  },
+  negativePrice: {
+    color: '#FF453A',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statItem: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 10,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8E8E93',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   textContainer: {
     flex: 1,
