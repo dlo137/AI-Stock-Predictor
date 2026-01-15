@@ -88,13 +88,20 @@ export default function TopPicksCarousel({ title, badgeText, data, onCardPress }
               {pick.confidence !== undefined && (
                 <View style={styles.confidenceContainer}>
                   <View style={styles.confidenceBarBg}>
-                    <View style={[styles.confidenceBarFill, { width: `${pick.confidence}%` }]} />
+                    <View style={[
+                      styles.confidenceBarFill, 
+                      { width: `${pick.confidence}%` },
+                      pick.signalType === 'bullish' ? styles.bullishBar : styles.bearishBar
+                    ]} />
                   </View>
                   <View style={styles.confidenceLabels}>
                     <Text style={styles.confidenceText}>
                       {pick.confidence < 70 ? 'Low' : pick.confidence < 80 ? 'Medium' : 'High'} Signal
                     </Text>
-                    <Text style={styles.confidencePercent}>{pick.confidence}%</Text>
+                    <Text style={[
+                      styles.confidencePercent,
+                      pick.signalType === 'bullish' ? styles.bullishText : styles.bearishText
+                    ]}>{pick.confidence}%</Text>
                   </View>
                 </View>
               )}
@@ -106,7 +113,7 @@ export default function TopPicksCarousel({ title, badgeText, data, onCardPress }
                   <Text
                     style={[
                       styles.priceText,
-                      pick.return >= 0 ? styles.positivePrice : styles.negativePrice,
+                      pick.signalType === 'bullish' ? styles.bullishPrice : styles.bearishPrice,
                     ]}
                   >
                     ${pick.price.toFixed(2)}
@@ -234,8 +241,13 @@ const styles = StyleSheet.create({
   },
   confidenceBarFill: {
     height: '100%',
-    backgroundColor: '#34D399',
     borderRadius: 2,
+  },
+  bullishBar: {
+    backgroundColor: '#34D399',
+  },
+  bearishBar: {
+    backgroundColor: '#FF453A',
   },
   confidenceLabels: {
     flexDirection: 'row',
@@ -250,7 +262,12 @@ const styles = StyleSheet.create({
   confidencePercent: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  bullishText: {
     color: '#34D399',
+  },
+  bearishText: {
+    color: '#FF453A',
   },
   companySubtext: {
     fontSize: 12,
@@ -287,6 +304,12 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 32,
     fontWeight: '700',
+  },
+  bullishPrice: {
+    color: '#34D399',
+  },
+  bearishPrice: {
+    color: '#FF453A',
   },
   positivePrice: {
     color: '#34D399',

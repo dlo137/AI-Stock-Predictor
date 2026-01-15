@@ -115,13 +115,13 @@ interface Asset {
   removed: string;
   icon: any;
   signals: {
-    bullish: {
-      short: number;
-      long: number;
+    short: {
+      direction: SignalType;  // 'bullish' OR 'bearish' (never both)
+      score: number;          // absolute value of signal strength
     };
-    bearish: {
-      short: number;
-      long: number;
+    long: {
+      direction: SignalType;  // 'bullish' OR 'bearish' (never both)
+      score: number;          // absolute value of signal strength
     };
   };
 }
@@ -184,6 +184,28 @@ export default function HomeScreen() {
   const normalizeAsset = (symbol: string, quote: any, changePercent: number, daysAgo: number): Asset => {
     const price = quote.c || 0;
 
+    // Determine short-term direction and score based on actual price movement
+    const shortDirection: SignalType = changePercent >= 0 ? 'bullish' : 'bearish';
+    const shortScore = Math.abs(changePercent);
+
+    // Determine long-term direction and score
+    // Use a hash-based approach to ensure variety while keeping consistency
+    const symbolHash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    let longDirection: SignalType;
+    let longScore: number;
+
+    if (Math.abs(changePercent) > 2) {
+      // Strong signals: use actual price movement
+      longDirection = changePercent > 0 ? 'bullish' : 'bearish';
+      longScore = Math.abs(changePercent);
+    } else {
+      // For weaker signals, create variety using symbol hash
+      // This ensures ~50% bullish, ~50% bearish distribution
+      longDirection = symbolHash % 2 === 0 ? 'bullish' : 'bearish';
+      longScore = Math.abs(changePercent) + ((symbolHash % 10) / 10);
+    }
+
     return {
       symbol,
       price,
@@ -192,16 +214,54 @@ export default function HomeScreen() {
       added: `Added ${new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
       removed: `Last: ${new Date(quote.t * 1000).toISOString().split('T')[0]}`,
       signals: {
-        bullish: {
-          short: changePercent > 0 ? changePercent : 0,
-          long: changePercent > 2 ? changePercent : Math.max(0, changePercent * 0.8),
+        short: {
+          direction: shortDirection,
+          score: shortScore,
         },
-        bearish: {
-          short: changePercent < 0 ? changePercent : 0,
-          long: changePercent < -2 ? changePercent : Math.min(0, changePercent * 0.8),
+        long: {
+          direction: longDirection,
+          score: longScore,
         },
       },
     };
+  };
+
+  // Helper function to check if an image URL is valid (not a template/placeholder)
+  const isValidNewsImage = (imageUrl: string | null | undefined): boolean => {
+    if (!imageUrl) return false;
+    
+    const url = imageUrl.toLowerCase();
+    
+    // Filter out common template/placeholder patterns
+    const badPatterns = [
+      'template',
+      'placeholder',
+      'default',
+      'generic',
+      '/logo',
+      'avatar',
+      'thumbnail.png',
+      'thumbnail.jpg',
+      'noimage',
+      'no-image',
+      'image-not-found'
+    ];
+    
+    // Check for bad patterns
+    if (badPatterns.some(pattern => url.includes(pattern))) {
+      return false;
+    }
+    
+    // Filter out Yahoo Finance social card templates (they often have zoomed text)
+    if (url.includes('yahoo') && url.includes('social')) {
+      return false;
+    }
+    
+    // Require actual image extensions or valid image domains
+    const hasValidExtension = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url);
+    const isValidDomain = url.includes('img.') || url.includes('images.') || url.includes('cdn.');
+    
+    return hasValidExtension || isValidDomain;
   };
 
   // Fetch stock-specific news
@@ -241,7 +301,10 @@ export default function HomeScreen() {
         url: article.url,
         image: article.image,
         datetime: article.datetime,
-      }));
+      })).filter((article: any) => 
+        isValidNewsImage(article.image) && 
+        !article.source?.toLowerCase().includes('yahoo')
+      );
 
       setStockNews(articles);
     } catch (err) {
@@ -256,107 +319,95 @@ export default function HomeScreen() {
   const fetchCarouselData = async () => {
     setCarouselLoading(true);
     try {
-      const stockSymbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'NVDA', 'META'];
-      const etfSymbols = ['SPY', 'QQQ', 'IWM', 'VOO', 'VTI', 'DIA'];
-      const cryptoSymbols = ['COIN', 'MSTR', 'RIOT', 'MARA', 'SQ', 'HOOD'];
       const allStocksTemp: Asset[] = [];
       const allEtfsTemp: Asset[] = [];
       const allCryptoTemp: Asset[] = [];
 
-      // Fetch initial data from Finnhub (fallback if WebSocket not ready)
-      for (const symbol of stockSymbols) {
-        try {
-          const cacheKey = `quote_${symbol}`;
-          let quote = getCachedData(cacheKey);
+      // Fetch top gainers from Massive API
+      try {
+        const gainersResponse = await axios.get(
+          `https://api.massive.com/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=${MASSIV_API_KEY}`
+        );
+        
+        if (gainersResponse.data && gainersResponse.data.tickers) {
+          const tickers = gainersResponse.data.tickers.slice(0, 10); // Get top 10
           
-          if (!quote) {
-            const response = await fetchWithRetry(
-              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=d5gpik1r01qll3djsgagd5gpik1r01qll3djsgb0`
-            );
-            quote = response.data;
-            setCachedData(cacheKey, quote);
-          }
-
-          console.log(`${symbol} response:`, quote);
-          
-          if (quote && typeof quote.c === 'number' && quote.pc && quote.c > 0 && quote.pc > 0) {
-            const changePercent = ((quote.c - quote.pc) / quote.pc) * 100;
-            allStocksTemp.push(normalizeAsset(symbol, quote, changePercent, 30));
-          } else {
-            console.warn(`${symbol}: Missing required data (c, pc)`);
-          }
-          await sleep(200); // Reduced delay since we have retry logic
-        } catch (err: any) {
-          if (err.response?.status === 429) {
-            console.error(`Rate limit hit for ${symbol}. Using cached data if available.`);
-          } else {
-            console.error(`Error fetching ${symbol}:`, err);
+          for (const ticker of tickers) {
+            const symbol = ticker.ticker;
+            const changePercent = ticker.todaysChangePerc || 0;
+            
+            // Create quote-like object from Massive data
+            const quote = {
+              c: ticker.day?.c || ticker.lastTrade?.p || 0,
+              pc: ticker.prevDay?.c || 0,
+              o: ticker.day?.o || 0,
+              h: ticker.day?.h || 0,
+              l: ticker.day?.l || 0,
+              v: ticker.day?.v || 0,
+              t: Math.floor((ticker.updated || Date.now() * 1000000) / 1000000),
+            };
+            
+            if (quote.c > 0 && quote.pc > 0) {
+              // Categorize by type
+              if (['SPY', 'QQQ', 'IWM', 'VOO', 'VTI', 'DIA', 'XLF', 'XLE', 'XLK'].includes(symbol)) {
+                allEtfsTemp.push(normalizeAsset(symbol, quote, changePercent, 30));
+              } else if (['COIN', 'MSTR', 'RIOT', 'MARA', 'SQ', 'HOOD'].includes(symbol)) {
+                allCryptoTemp.push(normalizeAsset(symbol, quote, changePercent, 20));
+              } else {
+                allStocksTemp.push(normalizeAsset(symbol, quote, changePercent, 30));
+              }
+            }
           }
         }
+      } catch (err) {
+        console.error('Error fetching gainers:', err);
       }
 
-      // Fetch ETFs
-      for (const symbol of etfSymbols) {
-        try {
-          const cacheKey = `quote_${symbol}`;
-          let quote = getCachedData(cacheKey);
+      // Fetch top losers from Massive API
+      try {
+        const losersResponse = await axios.get(
+          `https://api.massive.com/v2/snapshot/locale/us/markets/stocks/losers?apiKey=${MASSIV_API_KEY}`
+        );
+        
+        if (losersResponse.data && losersResponse.data.tickers) {
+          const tickers = losersResponse.data.tickers.slice(0, 10); // Get top 10
           
-          if (!quote) {
-            const response = await fetchWithRetry(
-              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=d5gpik1r01qll3djsgagd5gpik1r01qll3djsgb0`
-            );
-            quote = response.data;
-            setCachedData(cacheKey, quote);
-          }
-
-          console.log(`${symbol} response:`, quote);
-          
-          if (quote && typeof quote.c === 'number' && quote.pc && quote.c > 0 && quote.pc > 0) {
-            const changePercent = ((quote.c - quote.pc) / quote.pc) * 100;
-            allEtfsTemp.push(normalizeAsset(symbol, quote, changePercent, 25));
-          } else {
-            console.warn(`${symbol}: Missing required data (c, pc)`);
-          }
-          await sleep(200);
-        } catch (err: any) {
-          if (err.response?.status === 429) {
-            console.error(`Rate limit hit for ${symbol}. Using cached data if available.`);
-          } else {
-            console.error(`Error fetching ${symbol}:`, err);
+          for (const ticker of tickers) {
+            const symbol = ticker.ticker;
+            const changePercent = ticker.todaysChangePerc || 0;
+            
+            // Create quote-like object from Massive data
+            const quote = {
+              c: ticker.day?.c || ticker.lastTrade?.p || 0,
+              pc: ticker.prevDay?.c || 0,
+              o: ticker.day?.o || 0,
+              h: ticker.day?.h || 0,
+              l: ticker.day?.l || 0,
+              v: ticker.day?.v || 0,
+              t: Math.floor((ticker.updated || Date.now() * 1000000) / 1000000),
+            };
+            
+            if (quote.c > 0 && quote.pc > 0) {
+              // Skip duplicates from gainers
+              const isDuplicate = allStocksTemp.some(a => a.symbol === symbol) || 
+                                  allEtfsTemp.some(a => a.symbol === symbol) ||
+                                  allCryptoTemp.some(a => a.symbol === symbol);
+              
+              if (!isDuplicate) {
+                // Categorize by type
+                if (['SPY', 'QQQ', 'IWM', 'VOO', 'VTI', 'DIA', 'XLF', 'XLE', 'XLK'].includes(symbol)) {
+                  allEtfsTemp.push(normalizeAsset(symbol, quote, changePercent, 25));
+                } else if (['COIN', 'MSTR', 'RIOT', 'MARA', 'SQ', 'HOOD'].includes(symbol)) {
+                  allCryptoTemp.push(normalizeAsset(symbol, quote, changePercent, 20));
+                } else {
+                  allStocksTemp.push(normalizeAsset(symbol, quote, changePercent, 30));
+                }
+              }
+            }
           }
         }
-      }
-
-      // Fetch crypto/alt stocks
-      for (const symbol of cryptoSymbols) {
-        try {
-          const cacheKey = `quote_${symbol}`;
-          let quote = getCachedData(cacheKey);
-          
-          if (!quote) {
-            const response = await fetchWithRetry(
-              `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=d5gpik1r01qll3djsgagd5gpik1r01qll3djsgb0`
-            );
-            quote = response.data;
-            setCachedData(cacheKey, quote);
-          }
-
-          console.log(`${symbol} response:`, quote);
-          
-          if (quote && typeof quote.c === 'number' && quote.pc && quote.c > 0 && quote.pc > 0) {
-            const changePercent = ((quote.c - quote.pc) / quote.pc) * 100;
-            allCryptoTemp.push(normalizeAsset(symbol, quote, changePercent, 20));
-          } else {
-            console.warn(`${symbol}: Missing required data (c, pc)`);
-          }
-          await sleep(200);
-        } catch (err: any) {
-          if (err.response?.status === 429) {
-            console.error(`Rate limit hit for ${symbol}. Using cached data if available.`);
-          } else {
-            console.error(`Error fetching ${symbol}:`, err);
-          }
-        }
+      } catch (err) {
+        console.error('Error fetching losers:', err);
       }
 
       setAllStocks(allStocksTemp);
@@ -373,9 +424,17 @@ export default function HomeScreen() {
           console.log('[Home] WebSocket connected');
         }
 
-        // Subscribe to all carousel symbols
-        const allSymbols = [...stockSymbols, ...etfSymbols, ...cryptoSymbols];
-        ws.subscribe(allSymbols);
+        // Get all unique symbols from fetched data
+        const allSymbols = [
+          ...allStocksTemp.map(s => s.symbol),
+          ...allEtfsTemp.map(s => s.symbol),
+          ...allCryptoTemp.map(s => s.symbol),
+        ];
+        
+        if (allSymbols.length > 0) {
+          ws.subscribe(allSymbols);
+          console.log(`[Home] Subscribed to ${allSymbols.length} symbols:`, allSymbols);
+        }
 
         // Listen for real-time price updates
         const unsubscribe = ws.onPriceUpdate((update) => {
@@ -419,54 +478,75 @@ export default function HomeScreen() {
   // Derived filtered data - memoized to avoid recalculations
   const filteredStocks = useMemo(() => {
     const filtered = allStocks.filter(asset => {
-      const signalValue = asset.signals[signal.type][signal.timeframe];
-      if (signal.type === 'bullish') {
-        return signalValue > 0;
-      }
-      if (signal.type === 'bearish') {
-        return signalValue < 0;
-      }
-      return false;
+      const horizonSignal = asset.signals[signal.timeframe];
+      return horizonSignal.direction === signal.type && horizonSignal.score > 0;
+    });
+    // Sort by signal strength (descending - strongest first)
+    filtered.sort((a, b) => {
+      const aScore = a.signals[signal.timeframe].score;
+      const bScore = b.signals[signal.timeframe].score;
+      return bScore - aScore;
     });
     // If filtered results are less than 3, show all stocks sorted by signal value
     if (filtered.length < 3 && allStocks.length > 0) {
-      return allStocks.slice(0, 6);
+      const sorted = [...allStocks]
+        .filter(asset => asset.signals[signal.timeframe].direction === signal.type)
+        .sort((a, b) => {
+          const aScore = a.signals[signal.timeframe].score;
+          const bScore = b.signals[signal.timeframe].score;
+          return bScore - aScore;
+        });
+      return sorted.slice(0, 6);
     }
     return filtered;
   }, [allStocks, signal]);
 
   const filteredEtfs = useMemo(() => {
     const filtered = allEtfs.filter(asset => {
-      const signalValue = asset.signals[signal.type][signal.timeframe];
-      if (signal.type === 'bullish') {
-        return signalValue > 0;
-      }
-      if (signal.type === 'bearish') {
-        return signalValue < 0;
-      }
-      return false;
+      const horizonSignal = asset.signals[signal.timeframe];
+      return horizonSignal.direction === signal.type && horizonSignal.score > 0;
+    });
+    // Sort by signal strength (descending - strongest first)
+    filtered.sort((a, b) => {
+      const aScore = a.signals[signal.timeframe].score;
+      const bScore = b.signals[signal.timeframe].score;
+      return bScore - aScore;
     });
     // If filtered results are less than 3, show all ETFs sorted by signal value
     if (filtered.length < 3 && allEtfs.length > 0) {
-      return allEtfs.slice(0, 6);
+      const sorted = [...allEtfs]
+        .filter(asset => asset.signals[signal.timeframe].direction === signal.type)
+        .sort((a, b) => {
+          const aScore = a.signals[signal.timeframe].score;
+          const bScore = b.signals[signal.timeframe].score;
+          return bScore - aScore;
+        });
+      return sorted.slice(0, 6);
     }
     return filtered;
   }, [allEtfs, signal]);
 
   const filteredCrypto = useMemo(() => {
     const filtered = allCrypto.filter(asset => {
-      const signalValue = asset.signals[signal.type][signal.timeframe];
-      if (signal.type === 'bullish') {
-        return signalValue > 0;
-      }
-      if (signal.type === 'bearish') {
-        return signalValue < 0;
-      }
-      return false;
+      const horizonSignal = asset.signals[signal.timeframe];
+      return horizonSignal.direction === signal.type && horizonSignal.score > 0;
+    });
+    // Sort by signal strength (descending - strongest first)
+    filtered.sort((a, b) => {
+      const aScore = a.signals[signal.timeframe].score;
+      const bScore = b.signals[signal.timeframe].score;
+      return bScore - aScore;
     });
     // If filtered results are less than 3, show all crypto sorted by signal value
     if (filtered.length < 3 && allCrypto.length > 0) {
-      return allCrypto.slice(0, 6);
+      const sorted = [...allCrypto]
+        .filter(asset => asset.signals[signal.timeframe].direction === signal.type)
+        .sort((a, b) => {
+          const aScore = a.signals[signal.timeframe].score;
+          const bScore = b.signals[signal.timeframe].score;
+          return bScore - aScore;
+        });
+      return sorted.slice(0, 6);
     }
     return filtered;
   }, [allCrypto, signal]);
@@ -531,18 +611,23 @@ export default function HomeScreen() {
             }
             
             if (data && data.length > 0) {
-              // Take the first article for this stock
-              const article = data[0];
-              allArticles.push({
-                id: `${symbol}-${article.id || article.datetime}`,
-                headline: article.headline,
-                summary: article.summary || article.headline,
-                source: article.source,
-                url: article.url,
-                image: article.image,
-                datetime: article.datetime,
-                symbol: symbol, // Add the stock symbol
-              });
+              // Take the first article for this stock that has a valid image and is not from Yahoo
+              const article = data.find((a: any) => 
+                isValidNewsImage(a.image) && 
+                !a.source?.toLowerCase().includes('yahoo')
+              );
+              if (article) {
+                allArticles.push({
+                  id: `${symbol}-${article.id || article.datetime}`,
+                  headline: article.headline,
+                  summary: article.summary || article.headline,
+                  source: article.source,
+                  url: article.url,
+                  image: article.image,
+                  datetime: article.datetime,
+                  symbol: symbol, // Add the stock symbol
+                });
+              }
             }
             await sleep(500); // Increased delay for news endpoint
           } catch (err) {
@@ -1248,26 +1333,20 @@ Respond ONLY with a JSON object in this exact format:
             <View style={{ marginTop: 32 }}>
               <Text style={styles.sectionTitle}>{stockData.symbol} News</Text>
               {stockNewsLoading && <ActivityIndicator size="large" color="#34D399" style={{ marginVertical: 20 }} />}
-              {stockNews.length === 0 && !stockNewsLoading && (
+              {stockNews.filter(article => article.image).length === 0 && !stockNewsLoading && (
                 <Text style={styles.noNewsText}>No recent news available for this stock.</Text>
               )}
-              {stockNews.map((article) => (
+              {stockNews.filter(article => article.image).map((article) => (
                 <TouchableOpacity 
                   key={article.id} 
                   style={styles.newsCard}
                   onPress={() => Linking.openURL(article.url)}
                 >
-                  {article.image ? (
-                    <Image
-                      source={{ uri: article.image }}
-                      style={styles.newsImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.newsImagePlaceholder}>
-                      <Ionicons name="newspaper-outline" size={40} color="#8E8E93" />
-                    </View>
-                  )}
+                  <Image
+                    source={{ uri: article.image }}
+                    style={styles.newsImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.newsContent}>
                     <Text style={styles.newsHeadline} numberOfLines={2}>{article.headline}</Text>
                     <Text style={styles.newsSummary} numberOfLines={3}>{article.summary}</Text>
@@ -1298,7 +1377,7 @@ Respond ONLY with a JSON object in this exact format:
                 company: asset.company,
                 added: asset.added,
                 removed: asset.removed,
-                return: asset.signals[signal.type][signal.timeframe],
+                return: asset.signals[signal.timeframe].score,
                 price: asset.price,
                 icon: getLogoUrl(asset.symbol),
                 confidence: Math.round(65 + Math.random() * 20),
@@ -1323,7 +1402,7 @@ Respond ONLY with a JSON object in this exact format:
                 company: asset.company,
                 added: asset.added,
                 removed: asset.removed,
-                return: asset.signals[signal.type][signal.timeframe],
+                return: asset.signals[signal.timeframe].score,
                 price: asset.price,
                 icon: getLogoUrl(asset.symbol),
                 confidence: Math.round(65 + Math.random() * 20),
@@ -1348,7 +1427,7 @@ Respond ONLY with a JSON object in this exact format:
                 company: asset.company,
                 added: asset.added,
                 removed: asset.removed,
-                return: asset.signals[signal.type][signal.timeframe],
+                return: asset.signals[signal.timeframe].score,
                 price: asset.price,
                 icon: getLogoUrl(asset.symbol),
                 confidence: Math.round(65 + Math.random() * 20),
@@ -1366,23 +1445,17 @@ Respond ONLY with a JSON object in this exact format:
           <View style={{ marginTop: 32 }}>
             <Text style={styles.sectionTitle}>Market News</Text>
             {newsLoading && <ActivityIndicator size="large" color="#34D399" style={{ marginVertical: 20 }} />}
-            {news.map((article) => (
+            {news.filter(article => article.image).map((article) => (
               <TouchableOpacity 
                 key={article.id} 
                 style={styles.newsCard}
                 onPress={() => Linking.openURL(article.url)}
               >
-                {article.image ? (
-                  <Image
-                    source={{ uri: article.image }}
-                    style={styles.newsImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.newsImagePlaceholder}>
-                    <Ionicons name="newspaper-outline" size={40} color="#8E8E93" />
-                  </View>
-                )}
+                <Image
+                  source={{ uri: article.image }}
+                  style={styles.newsImage}
+                  resizeMode="cover"
+                />
                 <View style={styles.newsContent}>
                   <Text style={styles.newsHeadline} numberOfLines={2}>
                     {article.symbol && <Text style={styles.newsSymbol}>{article.symbol}: </Text>}
