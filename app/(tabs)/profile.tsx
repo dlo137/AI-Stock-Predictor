@@ -1,7 +1,37 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import RevenueCatUI from 'react-native-purchases-ui';
+import * as RevenueCatService from '../../services/revenueCatService';
 
 export default function ProfileScreen() {
+  const [isProUser, setIsProUser] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkProStatus();
+  }, []);
+
+  const checkProStatus = async () => {
+    try {
+      const hasPro = await RevenueCatService.hasProAccess();
+      setIsProUser(hasPro);
+    } catch (error) {
+      console.error('Error checking Pro status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      await RevenueCatUI.presentCustomerCenter();
+    } catch (error) {
+      console.error('❌ Error opening Customer Center:', error);
+      Alert.alert('Error', 'Unable to open subscription management');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -13,6 +43,13 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.userName}>John Doe</Text>
           <Text style={styles.userEmail}>john.doe@example.com</Text>
+          
+          {/* Pro badge */}
+          {isProUser && (
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>⭐ PRO MEMBER</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -24,7 +61,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={handleManageSubscription}
+          >
             <Text style={styles.menuIcon}>💳</Text>
             <Text style={styles.menuText}>Subscription & Billing</Text>
             <Text style={styles.menuArrow}>›</Text>
@@ -204,5 +244,17 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontSize: 14,
     marginBottom: 20,
+  },
+  proBadge: {
+    backgroundColor: '#FFD700',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  proBadgeText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

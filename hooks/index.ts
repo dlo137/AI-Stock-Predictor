@@ -1,0 +1,1 @@
+export { useIAP } from './useIAP';

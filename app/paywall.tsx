@@ -1,337 +1,351 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Image, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
+import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function PaywallScreen() {
-  const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'monthly' | 'weekly'>('yearly');
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [isLoading, setIsLoading] = useState(true);
+  const [useCustomPaywall, setUseCustomPaywall] = useState(false);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
+    presentPaywall();
   }, []);
 
-  const handleContinue = () => {
+  const presentPaywall = async () => {
+    try {
+      // Try to present RevenueCat paywall
+      console.log('Attempting to present RevenueCat paywall...');
+      const paywallResult: PAYWALL_RESULT = await RevenueCatUI.presentPaywall();
+
+      setIsLoading(false);
+
+      // Handle the result
+      switch (paywallResult) {
+        case PAYWALL_RESULT.PURCHASED:
+        case PAYWALL_RESULT.RESTORED:
+          console.log('✅ Purchase successful or restored');
+          router.replace('/(tabs)/home');
+          break;
+        case PAYWALL_RESULT.CANCELLED:
+          console.log('User cancelled paywall');
+          setUseCustomPaywall(true);
+          break;
+        case PAYWALL_RESULT.NOT_PRESENTED:
+        case PAYWALL_RESULT.ERROR:
+        default:
+          console.log('Paywall not presented, showing custom');
+          setUseCustomPaywall(true);
+          break;
+      }
+    } catch (error) {
+      console.log('⚠️ RevenueCat not available (likely Expo Go)');
+      setIsLoading(false);
+      setUseCustomPaywall(true);
+    }
+  };
+
+  const handleSkipForNow = () => {
     router.replace('/(tabs)/home');
   };
 
-  const handleClose = () => {
-    router.replace('/(tabs)/home');
+  const handleTryAgain = () => {
+    setIsLoading(true);
+    setUseCustomPaywall(false);
+    presentPaywall();
   };
 
-  const handleRestore = () => {
-    // Restore purchases functionality.
-    router.replace('/(tabs)/home');
-  };
+  if (isLoading && !useCustomPaywall) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar style="light" />
+        <Text style={styles.loadingText}>Loading subscription options...</Text>
+      </View>
+    );
+  }
+
+  if (useCustomPaywall) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.badge}>🚀 PREMIUM</Text>
+            <Text style={styles.title}>Unlock AI-Powered{'\n'}Stock Predictions</Text>
+            <Text style={styles.subtitle}>Get unlimited access to advanced trading signals</Text>
+          </View>
+
+          {/* Features */}
+          <View style={styles.features}>
+            <FeatureItem icon="📈" text="Unlimited stock predictions" />
+            <FeatureItem icon="🤖" text="Advanced AI analysis" />
+            <FeatureItem icon="⚡" text="Real-time market signals" />
+            <FeatureItem icon="📊" text="Sentiment analysis & insights" />
+            <FeatureItem icon="🎯" text="Price target predictions" />
+            <FeatureItem icon="🔔" text="Priority support" />
+          </View>
+
+          {/* Pricing */}
+          <View style={styles.pricingSection}>
+            <TouchableOpacity style={styles.planCard} activeOpacity={0.9}>
+              <View style={styles.planHeader}>
+                <Text style={styles.planName}>Monthly</Text>
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularText}>POPULAR</Text>
+                </View>
+              </View>
+              <Text style={styles.planPrice}>$9.99<Text style={styles.planPeriod}>/month</Text></Text>
+              <Text style={styles.planDescription}>Cancel anytime</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.planCard, styles.planCardHighlight]} activeOpacity={0.9}>
+              <View style={styles.bestValueBadge}>
+                <Text style={styles.bestValueText}>BEST VALUE</Text>
+              </View>
+              <View style={styles.planHeader}>
+                <Text style={styles.planName}>Annual</Text>
+                <Text style={styles.savingsBadge}>Save 40%</Text>
+              </View>
+              <Text style={styles.planPrice}>$59.99<Text style={styles.planPeriod}>/year</Text></Text>
+              <Text style={styles.planDescription}>Just $5/month • Cancel anytime</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Notice */}
+          <View style={styles.noticeBox}>
+            <Text style={styles.noticeText}>
+              ⚠️ <Text style={styles.noticeBold}>RevenueCat Setup Required</Text>
+            </Text>
+            <Text style={styles.noticeSubtext}>
+              To enable in-app purchases, complete the RevenueCat setup:{'\n'}
+              1. Create entitlement "Bullish Bearish Stocks Pro"{'\n'}
+              2. Configure an offering with products{'\n'}
+              3. Build with: npx eas build --profile development
+            </Text>
+          </View>
+
+          {/* Buttons */}
+          <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
+            <Text style={styles.tryAgainText}>Try RevenueCat Paywall Again</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkipForNow}>
+            <Text style={styles.skipText}>Continue to App</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.terms}>
+            Subscriptions auto-renew unless cancelled 24 hours before the end of the current period.
+          </Text>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
-    <LinearGradient
-      colors={['#000000', '#0a1810', '#000000']}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar style="light" />
-
-      {/* Close Button */}
-      <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-        <Text style={styles.closeText}>✕</Text>
-      </TouchableOpacity>
-
-      {/* Restore Purchases */}
-      <TouchableOpacity style={styles.alreadyPurchased} onPress={handleRestore}>
-        <Text style={styles.alreadyPurchasedText}>Restore Purchases</Text>
-      </TouchableOpacity>
-
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        style={{ opacity: fadeAnim, flex: 1 }}
-      >
-        {/* Logo with Glow */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoGlow}>
-            <View style={styles.logo}>
-              <Image
-                source={require('../assets/app-icon.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Make Smarter Trades.</Text>
-          <Text style={styles.subtitle}>
-            Every trade counts. Get AI-powered stock predictions that help you make confident decisions, grow your portfolio, and maximize returns.
-          </Text>
-        </View>
-
-        {/* Plans */}
-        <View style={styles.plansContainer}>
-          {/* Weekly Plan */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'weekly' && styles.selectedPlan,
-            ]}
-            onPress={() => setSelectedPlan('weekly')}
-          >
-            <View style={styles.planRadio}>
-              {selectedPlan === 'weekly' && <View style={styles.planRadioSelected} />}
-            </View>
-            <View style={styles.planContent}>
-              <Text style={styles.planName}>Weekly</Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={styles.planPrice}>$4.99/week</Text>
-              <Text style={styles.planSubtext}>50 predictions/week</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Monthly Plan */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'monthly' && styles.selectedPlan,
-            ]}
-            onPress={() => setSelectedPlan('monthly')}
-          >
-            <View style={styles.planRadio}>
-              {selectedPlan === 'monthly' && <View style={styles.planRadioSelected} />}
-            </View>
-            <View style={styles.planContent}>
-              <Text style={styles.planName}>Monthly</Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={styles.planPrice}>$14.99/month</Text>
-              <Text style={styles.planSubtext}>Unlimited predictions</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Yearly Plan - Most Popular */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              selectedPlan === 'yearly' && styles.selectedPlan,
-              styles.popularPlan,
-            ]}
-            onPress={() => setSelectedPlan('yearly')}
-          >
-            <View style={styles.planRadio}>
-              {selectedPlan === 'yearly' && <View style={styles.planRadioSelected} />}
-            </View>
-            <View style={styles.planContent}>
-              <Text style={styles.planName}>Yearly</Text>
-            </View>
-            <View style={styles.planPricing}>
-              <Text style={styles.planPrice}>$99.99/year</Text>
-              <Text style={styles.planSubtext}>Best value • Save 45%</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </Animated.ScrollView>
-
-      {/* Continue Button - Fixed at Bottom */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.continueButton}
-          onPress={handleContinue}
-        >
-          <LinearGradient
-            colors={['#2D8659', '#1a4d35']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.continueGradient}
-          >
-            <Text style={styles.continueText}>Get Started</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+    </View>
   );
 }
 
-const TEXT = '#ffffff';
-const MUTED = '#a0a8b8';
+const FeatureItem = ({ icon, text }: { icon: string; text: string }) => (
+  <View style={styles.featureItem}>
+    <Text style={styles.featureIcon}>{icon}</Text>
+    <Text style={styles.featureText}>{text}</Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
   },
-  closeText: {
-    fontSize: 24,
-    color: TEXT,
-    fontWeight: '300',
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
-  alreadyPurchased: {
-    position: 'absolute',
-    top: 60,
-    alignSelf: 'center',
-    zIndex: 10,
-  },
-  alreadyPurchasedText: {
-    fontSize: 13,
-    color: MUTED,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 120,
-    paddingBottom: 20,
-    justifyContent: 'center',
-  },
-  buttonContainer: {
-    paddingHorizontal: 24,
+  scrollContent: {
+    paddingTop: 60,
     paddingBottom: 40,
-    paddingTop: 10,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  logoGlow: {
-    shadowColor: '#2D8659',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 30,
-    elevation: 10,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
+    paddingHorizontal: 24,
   },
   header: {
-    marginBottom: 40,
     alignItems: 'center',
+    marginBottom: 40,
+  },
+  badge: {
+    backgroundColor: '#2D8659',
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: TEXT,
-    marginBottom: 16,
+    color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 36,
+    marginBottom: 12,
+    lineHeight: 38,
   },
   subtitle: {
-    fontSize: 15,
-    color: MUTED,
+    fontSize: 16,
+    color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: 10,
   },
-  plansContainer: {
-    gap: 16,
-    marginBottom: 16,
+  features: {
+    marginBottom: 32,
   },
-  planCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 20,
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: '#181818',
+    padding: 16,
+    borderRadius: 12,
+  },
+  featureIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  featureText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    flex: 1,
+  },
+  pricingSection: {
+    marginBottom: 24,
+    gap: 16,
+  },
+  planCard: {
+    backgroundColor: '#181818',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#282828',
+  },
+  planCardHighlight: {
+    borderColor: '#2D8659',
     position: 'relative',
   },
-  selectedPlan: {
-    borderColor: '#2D8659',
-    backgroundColor: 'rgba(45, 134, 89, 0.1)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#2D8659',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 15,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  popularPlan: {
-    // Additional styling for popular plan if needed
-  },
-  planRadio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: MUTED,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  planRadioSelected: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  bestValueBadge: {
+    position: 'absolute',
+    top: -12,
+    left: 16,
     backgroundColor: '#2D8659',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  planContent: {
-    flex: 1,
+  bestValueText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   planName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: TEXT,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  planPricing: {
-    alignItems: 'flex-end',
+  popularBadge: {
+    backgroundColor: '#FF9500',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  popularText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  savingsBadge: {
+    color: '#34C759',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   planPrice: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: MUTED,
-  },
-  planSubtext: {
-    fontSize: 12,
-    color: MUTED,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-  continueButton: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    shadowColor: '#2D8659',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  continueGradient: {
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueText: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  planPeriod: {
+    fontSize: 16,
+    color: '#8E8E93',
+    fontWeight: 'normal',
+  },
+  planDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  noticeBox: {
+    backgroundColor: '#1C1C1E',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+  },
+  noticeText: {
+    color: '#FF9500',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  noticeBold: {
+    fontWeight: 'bold',
+  },
+  noticeSubtext: {
+    color: '#8E8E93',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  tryAgainButton: {
+    backgroundColor: '#2D8659',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tryAgainText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  skipButton: {
+    backgroundColor: '#282828',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  skipText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  terms: {
+    fontSize: 11,
+    color: '#636366',
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

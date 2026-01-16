@@ -1485,7 +1485,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(28, 28, 30, 0.7)',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    backdropFilter: 'blur(20px)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
@@ -2052,13 +2051,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FF453A',
     marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-    paddingHorizontal: 20,
   },
   noNewsText: {
     fontSize: 14,

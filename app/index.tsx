@@ -163,11 +163,13 @@ export default function OnboardingScreen() {
     if (currentScreen < onboardingScreens.length - 1) {
       setCurrentScreen(currentScreen + 1);
     } else {
+      // Navigate to paywall after onboarding
       router.replace('/paywall');
     }
   };
 
   const handleSkip = () => {
+    // Navigate to paywall when skipping
     router.replace('/paywall');
   };
 
