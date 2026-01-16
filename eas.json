@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 13.2.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "MASSIV_API_KEY": "$MASSIV_API_KEY",
+        "OPENAI_API_KEY": "$OPENAI_API_KEY",
+        "FINNHUB_API_KEY": "$FINNHUB_API_KEY",
+        "LOGODEV_API_KEY": "$LOGODEV_API_KEY"
+      },
+      "ios": {
+        "simulator": false
+      }
+    }
+  }
+}

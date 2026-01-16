@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Bullish Bearish",
-    "slug": "Bullish Bearish",
+    "slug": "bullish-bearish",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
@@ -17,7 +17,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aistockpredictor.app",
-      "icon": "./assets/app-icon.png"
+      "icon": "./assets/app-icon.png",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "This app uses tracking to provide personalized stock recommendations and improve your experience.",
+        "NSLocationWhenInUseUsageDescription": "We do not collect your location data."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,10 +40,19 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "aistockpredictor",
+    "privacy": "public",
+    "description": "Get AI-powered stock predictions and real-time market signals. Make confident investment decisions with advanced analytics and sentiment analysis.",
+    "primaryColor": "#2D8659",
     "plugins": [
       "expo-router",
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c0dee8dc-6f20-457f-9c6e-a5d5854a5894"
+      }
+    }
   }
 }

@@ -3,7 +3,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
-import { FINNHUB_API_KEY, LOGODEV_API_KEY } from '@env';
+
+// Safe environment variable access
+let FINNHUB_API_KEY: string = '';
+let LOGODEV_API_KEY: string = '';
+
+try {
+  const env = require('@env');
+  FINNHUB_API_KEY = env.FINNHUB_API_KEY || '';
+  LOGODEV_API_KEY = env.LOGODEV_API_KEY || '';
+} catch (error) {
+  console.warn('Environment variables not loaded');
+}
 
 type Stock = {
   symbol: string;

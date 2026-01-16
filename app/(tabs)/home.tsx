@@ -6,8 +6,23 @@ import { Ionicons } from '@expo/vector-icons';
 import TopPicksCarousel from '../components/TopPicksCarousel';
 import SentimentGauge from '../components/SentimentGauge';
 import axios from 'axios';
-import { MASSIV_API_KEY, OPENAI_API_KEY, FINNHUB_API_KEY, LOGODEV_API_KEY } from '@env';
 import { getMassivWebSocket } from '../../services/massivWebSocket';
+
+// Safe environment variable access with fallbacks
+let MASSIV_API_KEY: string = '';
+let OPENAI_API_KEY: string = '';
+let FINNHUB_API_KEY: string = '';
+let LOGODEV_API_KEY: string = '';
+
+try {
+  const env = require('@env');
+  MASSIV_API_KEY = env.MASSIV_API_KEY || '';
+  OPENAI_API_KEY = env.OPENAI_API_KEY || '';
+  FINNHUB_API_KEY = env.FINNHUB_API_KEY || '';
+  LOGODEV_API_KEY = env.LOGODEV_API_KEY || '';
+} catch (error) {
+  console.warn('Environment variables not loaded:', error);
+}
 
 type SignalType = 'bullish' | 'bearish';
 type Timeframe = 'short' | 'long';
@@ -38,7 +53,7 @@ const TICKER_TO_DOMAIN: Record<string, string> = {
 
 const getLogoUrl = (symbol: string): string => {
   const domain = TICKER_TO_DOMAIN[symbol];
-  if (domain) {
+  if (domain && LOGODEV_API_KEY) {
     return `https://img.logo.dev/${domain}?token=${LOGODEV_API_KEY}`;
   }
   return '';
@@ -783,6 +798,12 @@ export default function HomeScreen() {
     T: number
   ): Promise<{ expectedPrice: number; upperBand: number; lowerBand: number; explanation: string; confidence: number }> => {
     try {
+      // Check if API key is available
+      if (!OPENAI_API_KEY) {
+        console.warn('OpenAI API key not configured');
+        throw new Error('API key not configured');
+      }
+
       const prompt = `Inputs:
 - Current price (P0): ${currentPrice.toFixed(2)}
 - Expected return (μ): ${mu.toFixed(4)}
@@ -834,8 +855,19 @@ Respond ONLY with a JSON object in this exact format:
         }
       );
 
+      // Safely access response data with null checks
+      if (!response?.data?.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from OpenAI');
+      }
+
       const text = response.data.choices[0].message.content;
       const result = JSON.parse(text);
+      
+      // Validate result has required fields
+      if (!result || typeof result.expectedPrice !== 'number') {
+        throw new Error('Invalid prediction data');
+      }
+      
       return result;
     } catch (error: any) {
       console.error('Error calling OpenAI API:', error);

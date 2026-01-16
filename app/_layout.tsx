@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as RevenueCatService from '../services/revenueCatService';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -22,14 +23,16 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="paywall" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <ErrorBoundary>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="paywall" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </ErrorBoundary>
   );
 }

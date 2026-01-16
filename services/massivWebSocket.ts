@@ -1,4 +1,12 @@
-import { MASSIV_API_KEY } from '@env';
+// Safe environment variable access
+let MASSIV_API_KEY: string = '';
+
+try {
+  const env = require('@env');
+  MASSIV_API_KEY = env.MASSIV_API_KEY || '';
+} catch (error) {
+  console.warn('[WebSocket] Environment variables not loaded');
+}
 
 interface AggregateMessage {
   ev: 'AM' | 'T';
@@ -76,6 +84,12 @@ class MassivWebSocketService {
 
   private authenticate(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    // Check if API key is available
+    if (!MASSIV_API_KEY) {
+      console.warn('[WebSocket] API key not configured, skipping authentication');
+      return;
+    }
 
     const authMessage = {
       action: 'auth',
