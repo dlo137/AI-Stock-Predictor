@@ -1,209 +1,139 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
+
+function FeatureItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <View style={styles.featureItem}>
+      <Text style={styles.featureIcon}>{icon}</Text>
+      <Text style={styles.featureText}>{text}</Text>
+    </View>
+  );
+}
 
 export default function PaywallScreen() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [useCustomPaywall, setUseCustomPaywall] = useState(false);
-
-  useEffect(() => {
-    presentPaywall();
-  }, []);
-
-  const presentPaywall = async () => {
-    try {
-      // Try to present RevenueCat paywall
-      console.log('Attempting to present RevenueCat paywall...');
-      const paywallResult: PAYWALL_RESULT = await RevenueCatUI.presentPaywall();
-
-      setIsLoading(false);
-
-      // Handle the result
-      switch (paywallResult) {
-        case PAYWALL_RESULT.PURCHASED:
-        case PAYWALL_RESULT.RESTORED:
-          console.log('✅ Purchase successful or restored');
-          router.replace('/(tabs)/home');
-          break;
-        case PAYWALL_RESULT.CANCELLED:
-          console.log('User cancelled paywall');
-          setUseCustomPaywall(true);
-          break;
-        case PAYWALL_RESULT.NOT_PRESENTED:
-        case PAYWALL_RESULT.ERROR:
-        default:
-          console.log('Paywall not presented, showing custom');
-          setUseCustomPaywall(true);
-          break;
-      }
-    } catch (error) {
-      console.log('⚠️ RevenueCat not available (likely Expo Go)');
-      setIsLoading(false);
-      setUseCustomPaywall(true);
-    }
-  };
-
   const handleSkipForNow = () => {
     router.replace('/(tabs)/home');
   };
 
   const handleTryAgain = () => {
-    setIsLoading(true);
-    setUseCustomPaywall(false);
-    presentPaywall();
+    // No-op, RevenueCat removed
   };
-
-  if (isLoading && !useCustomPaywall) {
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar style="light" />
-        <Text style={styles.loadingText}>Loading subscription options...</Text>
-      </View>
-    );
-  }
-
-  if (useCustomPaywall) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="light" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.badge}>🚀 PREMIUM</Text>
-            <Text style={styles.title}>Unlock AI-Powered{'\n'}Stock Predictions</Text>
-            <Text style={styles.subtitle}>Get unlimited access to advanced trading signals</Text>
-          </View>
-
-          {/* Features */}
-          <View style={styles.features}>
-            <FeatureItem icon="📈" text="Unlimited stock predictions" />
-            <FeatureItem icon="🤖" text="Advanced AI analysis" />
-            <FeatureItem icon="⚡" text="Real-time market signals" />
-            <FeatureItem icon="📊" text="Sentiment analysis & insights" />
-            <FeatureItem icon="🎯" text="Price target predictions" />
-            <FeatureItem icon="🔔" text="Priority support" />
-          </View>
-
-          {/* Pricing */}
-          <View style={styles.pricingSection}>
-            <TouchableOpacity style={styles.planCard} activeOpacity={0.9}>
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>Monthly</Text>
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>POPULAR</Text>
-                </View>
-              </View>
-              <Text style={styles.planPrice}>$9.99<Text style={styles.planPeriod}>/month</Text></Text>
-              <Text style={styles.planDescription}>Cancel anytime</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.planCard, styles.planCardHighlight]} activeOpacity={0.9}>
-              <View style={styles.bestValueBadge}>
-                <Text style={styles.bestValueText}>BEST VALUE</Text>
-              </View>
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>Annual</Text>
-                <Text style={styles.savingsBadge}>Save 40%</Text>
-              </View>
-              <Text style={styles.planPrice}>$59.99<Text style={styles.planPeriod}>/year</Text></Text>
-              <Text style={styles.planDescription}>Just $5/month • Cancel anytime</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Notice */}
-          <View style={styles.noticeBox}>
-            <Text style={styles.noticeText}>
-              ⚠️ <Text style={styles.noticeBold}>RevenueCat Setup Required</Text>
-            </Text>
-            <Text style={styles.noticeSubtext}>
-              To enable in-app purchases, complete the RevenueCat setup:{'\n'}
-              1. Create entitlement "Bullish Bearish Stocks Pro"{'\n'}
-              2. Configure an offering with products{'\n'}
-              3. Build with: npx eas build --profile development
-            </Text>
-          </View>
-
-          {/* Buttons */}
-          <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
-            <Text style={styles.tryAgainText}>Try RevenueCat Paywall Again</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkipForNow}>
-            <Text style={styles.skipText}>Continue to App</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.terms}>
-            Subscriptions auto-renew unless cancelled 24 hours before the end of the current period.
-          </Text>
-        </ScrollView>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.badge}>🚀 PREMIUM</Text>
+          <Text style={styles.title}>Unlock AI-Powered{'\n'}Stock Predictions</Text>
+          <Text style={styles.subtitle}>Get unlimited access to advanced trading signals</Text>
+        </View>
+
+        {/* Features */}
+        <View style={styles.features}>
+          <FeatureItem icon="📈" text="Unlimited stock predictions" />
+          <FeatureItem icon="🤖" text="Advanced AI analysis" />
+          <FeatureItem icon="⚡" text="Real-time market signals" />
+          <FeatureItem icon="📊" text="Sentiment analysis & insights" />
+          <FeatureItem icon="🎯" text="Price target predictions" />
+          <FeatureItem icon="🔔" text="Priority support" />
+        </View>
+
+        {/* Pricing */}
+        <View style={styles.pricingSection}>
+          <TouchableOpacity style={styles.planCard} activeOpacity={0.9}>
+            <View style={styles.planHeader}>
+              <Text style={styles.planName}>Monthly</Text>
+              <View style={styles.popularBadge}>
+                <Text style={styles.popularText}>POPULAR</Text>
+              </View>
+            </View>
+            <Text style={styles.planPrice}>$9.99<Text style={styles.planPeriod}>/month</Text></Text>
+            <Text style={styles.planDescription}>Cancel anytime</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.planCard, styles.planCardHighlight]} activeOpacity={0.9}>
+            <View style={styles.bestValueBadge}>
+              <Text style={styles.bestValueText}>BEST VALUE</Text>
+            </View>
+            <View style={styles.planHeader}>
+              <Text style={styles.planName}>Annual</Text>
+              <Text style={styles.savingsBadge}>Save 40%</Text>
+            </View>
+            <Text style={styles.planPrice}>$59.99<Text style={styles.planPeriod}>/year</Text></Text>
+            <Text style={styles.planDescription}>Just $5/month • Cancel anytime</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Notice */}
+        <View style={styles.noticeBox}>
+          <Text style={styles.noticeText}>
+            ⚠️ <Text style={styles.noticeBold}>RevenueCat Setup Required</Text>
+          </Text>
+          <Text style={styles.noticeSubtext}>
+            To enable in-app purchases, complete the RevenueCat setup:{'\n'}
+            1. Create entitlement "Bullish Bearish Stocks Pro"{'\n'}
+            2. Configure an offering with products{'\n'}
+            3. Build with: npx eas build --profile development
+          </Text>
+        </View>
+
+        {/* Buttons */}
+        <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
+          <Text style={styles.tryAgainText}>Try RevenueCat Paywall Again</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkipForNow}>
+          <Text style={styles.skipText}>Continue to App</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.terms}>
+          Subscriptions auto-renew unless cancelled 24 hours before the end of the current period.
+        </Text>
+      </ScrollView>
     </View>
   );
 }
 
-const FeatureItem = ({ icon, text }: { icon: string; text: string }) => (
-  <View style={styles.featureItem}>
-    <Text style={styles.featureIcon}>{icon}</Text>
-    <Text style={styles.featureText}>{text}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    backgroundColor: '#121212',
   },
   scrollContent: {
-    paddingTop: 60,
+    padding: 24,
     paddingBottom: 40,
-    paddingHorizontal: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   badge: {
     backgroundColor: '#2D8659',
-    color: '#FFFFFF',
-    fontSize: 12,
+    color: '#fff',
     fontWeight: 'bold',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 20,
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
   title: {
-    fontSize: 32,
+    color: '#fff',
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 38,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
     color: '#8E8E93',
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 22,
+    marginBottom: 16,
   },
   features: {
     marginBottom: 32,

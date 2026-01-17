@@ -93,7 +93,7 @@ export default function StocksScreen() {
       // Determine which stocks to fetch
       const startIndex = visibleCount === 8 ? 0 : stocks.length;
       const endIndex = Math.min(visibleCount, FORTUNE_500_TICKERS.length);
-      const results = [];
+      const results: Stock[] = [];
       
       for (let i = startIndex; i < endIndex; i++) {
         const symbol = FORTUNE_500_TICKERS[i];
@@ -181,7 +181,7 @@ export default function StocksScreen() {
       if (visibleCount === 8) {
         setStocks(results);
       } else {
-        setStocks(prevStocks => [...prevStocks, ...results]);
+        setStocks((prevStocks: Stock[]) => [...prevStocks, ...results]);
       }
       
       setLoading(false);
