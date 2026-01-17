@@ -29,5 +29,8 @@
         "simulator": false
       }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

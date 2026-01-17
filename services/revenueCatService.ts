@@ -8,13 +8,13 @@ import Constants from 'expo-constants';
 
 // RevenueCat API Keys
 const REVENUECAT_TEST_KEY = 'test_qyLrAiaMuauKadZhdwxiCBmzhXP'; // For Expo Go
-const REVENUECAT_PRODUCTION_KEY = 'sk_jBFAmTiGOsZfyxzKEpHqCXtdTvKZm'; // For builds
+// Removed hardcoded RevenueCat secret key. Use only public key from env.
 
 // Check if running in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 
 // Use test key in Expo Go, production key in builds
-const REVENUECAT_API_KEY = isExpoGo ? REVENUECAT_TEST_KEY : REVENUECAT_PRODUCTION_KEY;
+const REVENUECAT_API_KEY = process.env.REVENUECAT_API_KEY || REVENUECAT_TEST_KEY;
 
 // Entitlement identifier
 export const ENTITLEMENT_ID = 'Bullish Bearish Stocks Pro';
@@ -28,6 +28,13 @@ export const initializeRevenueCat = async (): Promise<void> => {
     // Enable debug logs for testing (disable in production)
     if (__DEV__) {
       Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    }
+
+    // Runtime check for API key
+    if (!REVENUECAT_API_KEY || typeof REVENUECAT_API_KEY !== 'string' || REVENUECAT_API_KEY.length < 10) {
+      const msg = '[RevenueCat] API key is missing or invalid. Skipping Purchases.configure.';
+      console.error(msg);
+      throw new Error(msg);
     }
 
     // Configure RevenueCat
