@@ -49,3 +49,8 @@ export const logOut = async (): Promise<void> => {
 export const identifyUser = async (userId: string): Promise<void> => {
   // Stub: do nothing
 };
+
+export const hasProAccess = async (): Promise<boolean> => {
+  // Stub: always return false (no pro access in test mode)
+  return false;
+};

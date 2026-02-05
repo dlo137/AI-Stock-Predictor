@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import { RevenueCatUI } from 'react-native-purchases-ui';
+import RevenueCatUI from 'react-native-purchases-ui';
 
 export const CustomerCenter = () => {
   const handleOpenCustomerCenter = async () => {

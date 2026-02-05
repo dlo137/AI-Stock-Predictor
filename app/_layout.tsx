@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as RevenueCatService from '../services/revenueCatService';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -41,11 +41,27 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          animation: 'default',
         }}
       >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="paywall" />
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen 
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="paywall"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </ErrorBoundary>
   );

@@ -5,17 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/app-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
-      "supportsTablet": true,
       "bundleIdentifier": "com.aistockpredictor.app",
       "icon": "./assets/app-icon.png",
       "buildNumber": "1",
@@ -31,7 +28,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
       "package": "com.aistockpredictor.app",
       "icon": "./assets/app-icon.png"
@@ -54,6 +51,6 @@
         "projectId": "c0dee8dc-6f20-457f-9c6e-a5d5854a5894"
       }
     },
-    "jsEngine": "jsc"
+    "jsEngine": "hermes"
   }
 }

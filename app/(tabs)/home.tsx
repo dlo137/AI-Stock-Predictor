@@ -3,8 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import TopPicksCarousel from '../components/TopPicksCarousel';
-import SentimentGauge from '../components/SentimentGauge';
+import TopPicksCarousel from '../../components/TopPicksCarousel';
+import SentimentGauge from '../../components/SentimentGauge';
 import axios from 'axios';
 import { getMassivWebSocket } from '../../services/massivWebSocket';
 
