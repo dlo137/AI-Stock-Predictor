@@ -123,13 +123,14 @@ export default function TopPicksCarousel({ title, badgeText, data, onCardPress }
             </View>
 
             {/* Right edge gradient fade */}
-            <LinearGradient
-              colors={['transparent', 'rgba(28, 28, 30, 0.8)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.rightGradient}
-              pointerEvents="none"
-            />
+            <View style={styles.rightGradient} pointerEvents="none">
+              <LinearGradient
+                colors={['rgba(0, 0, 0, 0)', 'rgba(28, 28, 30, 0.8)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>

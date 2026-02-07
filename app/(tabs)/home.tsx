@@ -21,7 +21,7 @@ try {
   FINNHUB_API_KEY = env.FINNHUB_API_KEY || '';
   LOGODEV_API_KEY = env.LOGODEV_API_KEY || '';
 } catch (error) {
-  console.warn('Environment variables not loaded:', error);
+  console.log('UPDATE AND CONNECT API');
 }
 
 type SignalType = 'bullish' | 'bearish';
@@ -1062,7 +1062,7 @@ Respond ONLY with a JSON object in this exact format:
       <View style={styles.topContainer}>
         {/* Grey Streak Background */}
         <LinearGradient
-          colors={['rgba(60, 60, 60, 0.3)', 'rgba(40, 40, 40, 0.2)', 'transparent']}
+          colors={['rgba(60, 60, 60, 0.3)', 'rgba(40, 40, 40, 0.2)', 'rgba(0, 0, 0, 0)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.greenStreak}

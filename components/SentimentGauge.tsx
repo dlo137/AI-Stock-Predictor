@@ -144,10 +144,10 @@ const SentimentGauge: React.FC<SentimentGaugeProps> = ({ score }) => {
     <View style={styles.container}>
       <Svg width={GAUGE_WIDTH} height={GAUGE_HEIGHT}>
         <Defs>
-          <LinearGradient id="gaugeGradient" x1="0" y1="0" x2={GAUGE_WIDTH} y2="0">
-            <Stop offset="0%" stopColor={COLOR_BEARISH} />
-            <Stop offset="50%" stopColor={COLOR_NEUTRAL} />
-            <Stop offset="100%" stopColor={COLOR_BULLISH} />
+          <LinearGradient id="gaugeGradient" x1={0} y1={0} x2={1} y2={0}>
+            <Stop offset={0} stopColor={COLOR_BEARISH} />
+            <Stop offset={0.5} stopColor={COLOR_NEUTRAL} />
+            <Stop offset={1} stopColor={COLOR_BULLISH} />
           </LinearGradient>
         </Defs>
         {/* Background arc (gray) */}

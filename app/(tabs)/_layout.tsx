@@ -17,10 +17,9 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600' as const,
+          fontWeight: '600',
         },
         headerShown: false,
-        animation: 'shift',
       }}
     >
       <Tabs.Screen

@@ -5,7 +5,7 @@ try {
   const env = require('@env');
   MASSIV_API_KEY = env.MASSIV_API_KEY || '';
 } catch (error) {
-  console.warn('[WebSocket] Environment variables not loaded');
+  console.log('UPDATE AND CONNECT API');
 }
 
 interface AggregateMessage {
